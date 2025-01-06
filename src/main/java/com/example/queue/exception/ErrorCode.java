@@ -15,5 +15,7 @@ public enum ErrorCode {
         return new QueueException(httpStatus, code, reason);
     }
 
-
+    public QueueException build(Object ...args) {
+        return new QueueException(httpStatus, code, reason.formatted(args));
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.queue.service;
 
+import com.example.queue.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -11,21 +12,43 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class UserQueueServiceImpl implements UserQueueService {
     private final ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
-
     private final String USER_QUEUE_WAIT_KEY = "users:queue:%s:wait";
+    private final String USER_QUEUE_PROCEED_KEY = "users:queue:%s:proceed";
 
     @Override
-    public Mono<Long> registerWaitQueue(String queue, Long userId) {
+    public Mono<Long> registerWaitQueue(final String queue, final Long userId) {
         /*
         redis 의 sortedSet
         - key : userId
         - value : timestamp
         */
         long second = Instant.now().getEpochSecond();
-        return reactiveRedisTemplate.opsForZSet().add(USER_QUEUE_WAIT_KEY.formatted(queue), userId.toString(), second)
+        return reactiveRedisTemplate.opsForZSet()
+                .add(USER_QUEUE_WAIT_KEY.formatted(queue), userId.toString(), second)
                 .filter(i -> i) //이미 대기열 존재하는 사용자 제외
-                .switchIfEmpty(Mono.error(new RuntimeException("이미 등록된 사용자")))
+                .switchIfEmpty(Mono.error(ErrorCode.QUEUE_ALREADY_REGISTERED_USER.build()))
                 .flatMap(i -> reactiveRedisTemplate.opsForZSet().rank(USER_QUEUE_WAIT_KEY.formatted(queue), userId.toString()))
                 .map(i -> i + 1);    //대기열 순번 반환
+    }
+
+    //진입 허용
+    @Override
+    public Mono<Long> allowUser(final String queue, final Long count) {
+        //진입을 허용하는 단계
+        //1. wait queue 에서 사용자 제거
+        //2. proceed queue 에 사용자 추가
+        return reactiveRedisTemplate.opsForZSet()
+                .popMin(USER_QUEUE_WAIT_KEY.formatted(queue), count)
+                .flatMap(user -> reactiveRedisTemplate.opsForZSet().add(USER_QUEUE_PROCEED_KEY.formatted(queue), user.getValue(), Instant.now().getEpochSecond()))
+                .count();
+
+    }
+
+    //진입 가능 상태 조회
+    @Override
+    public Mono<Boolean> isAllowedUser(final String queue, final Long userId) {
+        return reactiveRedisTemplate.opsForZSet().rank(USER_QUEUE_PROCEED_KEY.formatted(queue), userId.toString())
+                .defaultIfEmpty(-1L)
+                .map(rank -> rank >= 0);
     }
 }

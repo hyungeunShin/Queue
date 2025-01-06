@@ -31,6 +31,8 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'io.projectreactor:reactor-test'
+	testImplementation 'com.github.codemonstur:embedded-redis:1.0.0'
+
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
