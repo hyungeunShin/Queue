@@ -107,4 +107,42 @@ class UserQueueServiceImplTest {
                     .expectNext(true)
                     .verifyComplete();
     }
+
+    @Test
+    void getRank() {
+        StepVerifier.create(userQueueService.registerWaitQueue("default", 101L)
+                            .then(userQueueService.getRank("default", 101L)))
+                    .expectNext(1L)
+                    .verifyComplete();
+
+        StepVerifier.create(userQueueService.registerWaitQueue("default", 102L)
+                            .then(userQueueService.getRank("default", 102L)))
+                    .expectNext(2L)
+                    .verifyComplete();
+    }
+
+    @Test
+    void emptyRank() {
+        StepVerifier.create(userQueueService.getRank("default", 101L))
+                    .expectNext(-1L)
+                    .verifyComplete();
+    }
+
+    @Test
+    void isAllowedUserByToken() {
+        StepVerifier.create(userQueueService.isAllowedUserByToken("default", 101L, ""))
+                    .expectNext(false)
+                    .verifyComplete();
+
+        StepVerifier.create(userQueueService.isAllowedUserByToken("default", 101L, "bf00fd9ec300129861628c5a13e9507bb8b3dc6603f3bc8dd978b709c1146dff"))
+                    .expectNext(true)
+                    .verifyComplete();
+    }
+
+    @Test
+    void generateToken() {
+        StepVerifier.create(userQueueService.generateToken("default", 101L))
+                    .expectNext("bf00fd9ec300129861628c5a13e9507bb8b3dc6603f3bc8dd978b709c1146dff")
+                    .verifyComplete();
+    }
 }

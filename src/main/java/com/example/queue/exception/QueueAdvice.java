@@ -9,16 +9,9 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @RestControllerAdvice
 public class QueueAdvice {
-//    @ExceptionHandler(QueueException.class)
-//    public Mono<ResponseEntity<QueueExceptionResponse>> queueExceptionHandler(QueueException e) {
-//        return Mono.just(ResponseEntity.status(e.getHttpStatus()).body(new QueueExceptionResponse(e.getCode(), e.getReason())));
-//    }
-
     @ExceptionHandler(QueueException.class)
-    public ResponseEntity<QueueExceptionResponse> queueExceptionHandler(QueueException e) {
-        QueueExceptionResponse response = new QueueExceptionResponse(e.getCode(), e.getReason());
-        log.error("QueueException Response: {}", response);
-        return ResponseEntity.status(e.getHttpStatus()).body(response);
+    public Mono<ResponseEntity<QueueExceptionResponse>> queueExceptionHandler(QueueException e) {
+        return Mono.just(ResponseEntity.status(e.getHttpStatus()).body(new QueueExceptionResponse(e.getCode(), e.getReason())));
     }
 
     public record QueueExceptionResponse(String code, String reason) {
